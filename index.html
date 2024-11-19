@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寻宝游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            text-align: center;
+            margin: 0;
+            background-color: #f0f0f0; /* 默认背景颜色 */
+        }
+        #startScreen {
+            display: block; /* 确保开始游戏界面显示 */
+            background-image: url('cangbaotu.jpg'); /* 替换为你的背景图片路径 */
+            background-size: cover; /* 使背景图片覆盖整个屏幕 */
+            background-position: center; /* 背景图片居中 */
+            height: 100vh; /* 使开始界面高度覆盖整个视口 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white; /* 文字颜色 */
+        }
+        #startScreen h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+        #startScreen button {
+            padding: 10px 20px;
+            font-size: 1.2em;
+            background-color: rgba(255, 255, 255, 0.7); /* 半透明背景 */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #startScreen button:hover {
+            background-color: rgba(255, 255, 255, 1); /* 鼠标悬停时背景不透明 */
+        }
+
+        #gameScreen {
+            display: none; /* 游戏界面初始隐藏 */
+        }
+        #startScreen button, #gameScreen button {
+            margin-top: 20px;
+        }
+        #story {
+            margin-bottom: 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center; /* 居中文字 */
+            font-size: 1.2em; /* 加大文字 */
+        }
+        #story p {
+            margin: 5px 0;
+        }
+        .fade-in {
+            opacity: 0;
+            animation: fadeIn 1s forwards;
+        }
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+        #retryButtons {
+            display: none;
+        }
+        #pathTwoOptions {
+            display: none;
+            margin-top: 20px;
+        }
+        #pathTwoOptions button {
+            margin: 10px;
+        }
+        /* 为游戏界面添加背景图 */
+        #gameScreen {
+            background-image: url('fenchalu.jpg');
+            background-size: cover; /* 使背景图片覆盖整个容器 */
+            background-position: center; /* 背景图片居中 */
+            background-repeat: no-repeat; /* 防止背景图片重复 */
+            height: 100vh; /* 使游戏界面高度覆盖整个视口 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white; /* 文字颜色 */
+        }
+        /* 探索失败的背景图 */
+        .failure {
+            background-image: url('shibai.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            color: white; /* 文字颜色 */
+        }
+
+        /* 探索成功的背景图 */
+        .success {
+            background-image: url('chenggong.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            color: white; /* 文字颜色 */
+        }
+        /* 模态框样式 */
+        .modal {
+            display: none; /* 默认隐藏 */
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5); /* 半透明背景 */
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto; /* 居中 */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* 宽度 */
+            text-align: center;
+        }
+        .modal-content img {
+            max-width: 100%;
+            height: auto;
+        }
+        /* 关闭按钮样式 */
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+        audio {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <audio id="backgroundMusic" loop>
+        <source src="background-music.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <div id="startScreen">
+        <h1>欢迎来到寻宝游戏</h1>
+        <button id="startButton">开始游戏</button>
+    </div>
+    <div id="gameScreen">
+        <div id="buttons">
+            <button id="pathOneButton">选择路径一</button>
+            <button id="pathTwoButton">选择路径二</button>
+        </div>
+        <div id="story"></div>
+        <div id="retryButtons">
+            <button id="retryButton">重新探索</button>
+            <button id="endButton">结束探索</button>
+        </div>
+        <div id="pathTwoOptions">
+            <button id="smallPathOneButton">小路一</button>
+            <button id="smallPathTwoButton">小路二</button>
+        </div>
+        <div id="questionScreen">
+            <p id="questionText">解谜时间! 谜题: '我无声无息，却能填满整个房间。' 你的答案是什么？</p>
+            <input type="text" id="answerInput" placeholder="输入你的答案">
+            <button id="submitAnswerButton">提交答案</button>
+        </div>
+        <div id="endScreen">
+            <h1>游戏结束</h1>
+            <button id="restartButton">重新开始</button>
+        </div>
+    </div>
+
+    <!-- 探索成功模态框 -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <img src="chenggong.jpg" alt="探索成功">
+        </div>
+    </div>
+    <!-- 探索失败模态框 -->
+    <div id="failureModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <img src="shibai.jpg" alt="探索失败">
+        </div>
+    </div>
+    <script>
+        window.onload = function() {
+            const playerInfoKey = 'playerInfo';
+            let playerInfo = JSON.parse(localStorage.getItem(playerInfoKey)) || {
+                playerId: Date.now().toString(),
+                nickname: '',
+                gameHistory: []
+            };
+
+            class TreasureMap {
+                static async getInitialClue() {
+                    return fetch('library.txt')
+                        .then(response => response.text())
+                        .catch(error => `无法获取图书馆线索: ${error}`);
+                }
+
+                static async decodeAncientScript(clue) {
+                    if (!clue) return "没有线索可以解码!";
+                    return fetch('temple.txt')
+                        .then(response => response.text())
+                        .catch(error => `无法解码古文: ${error}`);
+                }
+
+                static solveRiddle() {
+                    return new Promise((resolve, reject) => {
+                        setTimeout(() => {
+                            const riddleAnswer = document.getElementById('answerInput').value;
+                            console.log('Riddle answer:', riddleAnswer);
+                            if (riddleAnswer.toLowerCase() === "光") {
+                                resolve("谜题解决!神庙的确切位置已经找到...");
+                            } else {
+                                reject("错误的答案!再试一次...");
+                            }
+                        }, 1000);
+                    });
+                }
+
+                static searchTemple() {
+                    return new Promise((resolve, reject) => {
+                        setTimeout(() => {
+                            const random = Math.random();
+                            if (random < 0.5) {
+                                reject("糟糕!遇到了神庙守卫!");
+                            }
+                            resolve("找到了一个神秘的箱子...");
+                        }, 2000);
+                    });
+                }
+
+                static openTreasureBox() {
+                    return new Promise((resolve) => {
+                        setTimeout(() => {
+                            resolve("恭喜!你找到了传说中的宝藏!");
+                        }, 1000);
+                    });
+                }
+            }
+
+            const gameState = {
+                currentStep: null,
+                isGameOver: false
+            };
+
+            function updateUI() {
+                const gameScreen = document.getElementById('gameScreen');
+                const endScreen = document.getElementById('endScreen');
+                const startScreen = document.getElementById('startScreen');
+                const pathTwoOptions = document.getElementById('pathTwoOptions');
+                const retryButtons = document.getElementById('retryButtons');
+                const questionScreen = document.getElementById('questionScreen');
+
+                switch (gameState.currentStep) {
+                    case 'start':
+                        startScreen.style.display = 'block';
+                        gameScreen.style.display = 'none';
+                        endScreen.style.display = 'none';
+                        break;
+                    case 'game':
+                        startScreen.style.display = 'none';
+                        gameScreen.style.display = 'block';
+                        endScreen.style.display = 'none';
+                        pathTwoOptions.style.display = 'none';
+                        retryButtons.style.display = 'none';
+                        questionScreen.style.display = 'none';
+                        break;
+                    case 'pathOne':
+                        addToStory("选择了路径一");
+                        addToStory("糟糕!遇到了神庙守卫!");
+                        gameState.currentStep = 'failure';
+                        updateUI();
+                        break;
+                    case 'pathTwo':
+                        addToStory("选择了路径二");
+                        pathTwoOptions.style.display = 'none';
+                        retryButtons.style.display = 'none';
+                        questionScreen.style.display = 'block';
+                        break;
+                    case 'question':
+                        questionScreen.style.display = 'block';
+                        retryButtons.style.display = 'none';
+                        break;
+                    case 'pathTwoOptions':
+                        questionScreen.style.display = 'none';
+                        pathTwoOptions.style.display = 'block';
+                        retryButtons.style.display = 'none';
+                        break;
+                    case 'retry':
+                        retryButtons.style.display = 'block';
+                        questionScreen.style.display = 'none';
+                        break;
+                    case 'end':
+                        gameScreen.style.display = 'none';
+                        endScreen.style.display = 'block';
+                        break;
+                    case 'failure':
+                        gameScreen.classList.add('failure');
+                        gameScreen.classList.remove('success');
+                        endScreen.style.display = 'none';
+                        failureModal.style.display = 'block';
+                        saveGameHistory('failure');
+                        break;
+                    case 'success':
+                        gameScreen.classList.add('success');
+                        gameScreen.classList.remove('failure');
+                        endScreen.style.display = 'none';
+                        successModal.style.display = 'block';
+                        saveGameHistory('success');
+                        break;
+                    default:
+                        startScreen.style.display = 'block';
+                        gameScreen.style.display = 'none';
+                        endScreen.style.display = 'none';
+                }
+            }
+
+            // 模态框关闭功能
+            const successModal = document.getElementById('successModal');
+            const failureModal = document.getElementById('failureModal');
+            const closeButtons = document.getElementsByClassName('close');
+
+            for (let i = 0; i < closeButtons.length; i++) {
+                closeButtons[i].addEventListener('click', () => {
+                    successModal.style.display = 'none';
+                    failureModal.style.display = 'none';
+                });
+            }
+
+            // 在游戏逻辑中根据结果显示模态框
+            async function findTreasureWithAsyncAwait() {
+                try {
+                    const clue = await TreasureMap.getInitialClue();
+                    addToStory(clue);
+                    const location = await TreasureMap.decodeAncientScript(clue);
+                    addToStory(location);
+                    gameState.currentStep = 'pathTwo';
+                    updateUI();
+                } catch (error) {
+                    addToStory(`任务失败: ${error}`);
+                    gameState.currentStep = 'failure';
+                    updateUI();
+                }
+            }
+
+            function addToStory(text) {
+                const storyDiv = document.getElementById('story');
+                const newParagraph = document.createElement('p');
+                newParagraph.textContent = text;
+                newParagraph.classList.add('fade-in');
+                storyDiv.appendChild(newParagraph);
+            }
+
+            function savePlayerInfo() {
+                localStorage.setItem(playerInfoKey, JSON.stringify(playerInfo));
+            }
+
+            function saveGameHistory(result) {
+                const timestamp = new Date().toLocaleString();
+                playerInfo.gameHistory.push({ timestamp, result });
+                savePlayerInfo();
+            }
+
+            document.getElementById('startButton').addEventListener('click', () => {
+                gameState.currentStep = 'game';
+                updateUI();
+                findTreasureWithAsyncAwait();
+
+                // 启动背景音乐
+                const backgroundMusic = document.getElementById('backgroundMusic');
+                backgroundMusic.play().catch(error => {
+                    console.error('播放背景音乐时出错:', error);
+                });
+            });
+
+            document.getElementById('pathOneButton').addEventListener('click', () => {
+                gameState.currentStep = 'pathOne';
+                updateUI();
+            });
+
+            document.getElementById('pathTwoButton').addEventListener('click', () => {
+                gameState.currentStep = 'question';
+                updateUI();
+            });
+
+            document.getElementById('smallPathOneButton').addEventListener('click', async () => {
+                addToStory("选择了小路一");
+                try {
+                    const box = await TreasureMap.searchTemple();
+                    addToStory(box);
+                    const treasure = await TreasureMap.openTreasureBox();
+                    addToStory(treasure);
+                    gameState.currentStep = 'success';
+                    updateUI();
+                } catch (error) {
+                    addToStory(`任务失败: ${error}`);
+                    gameState.currentStep = 'failure';
+                    updateUI();
+                }
+            });
+
+            document.getElementById('smallPathTwoButton').addEventListener('click', () => {
+                addToStory("选择了小路二");
+                gameState.currentStep = 'failure';
+                updateUI();
+            });
+
+            document.getElementById('submitAnswerButton').addEventListener('click', async () => {
+                try {
+                    const riddleResult = await TreasureMap.solveRiddle();
+                    addToStory(riddleResult);
+                    gameState.currentStep = 'pathTwoOptions'; // 解答正确后进入两个小路选项
+                    updateUI();
+                } catch (error) {
+                    addToStory(`任务失败: ${error}`);
+                    gameState.currentStep = 'failure';
+                    updateUI();
+                }
+            });
+
+            document.getElementById('retryButton').addEventListener('click', () => {
+                gameState.currentStep = 'game';
+                document.getElementById('story').innerHTML = '';
+                findTreasureWithAsyncAwait();
+            });
+
+            document.getElementById('endButton').addEventListener('click', () => {
+                gameState.currentStep = 'end';
+                updateUI();
+            });
+
+            document.getElementById('restartButton').addEventListener('click', () => {
+                gameState.currentStep = 'start';
+                document.getElementById('story').innerHTML = '';
+                document.getElementById('endScreen').style.display = 'none';
+                updateUI();
+            });
+
+            // 加载玩家信息
+            const storedNickname = prompt("请输入你的昵称:");
+            if (storedNickname) {
+                playerInfo.nickname = storedNickname;
+                savePlayerInfo();
+            }
+            console.log(playerInfo);
+        };
+    </script>
+</body>
+</html>
+
+
+
